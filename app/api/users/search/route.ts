@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/app/lib/mongo";
 import User from "@/app/models/User";
+import { getAuthSession } from "@/app/lib/auth";
 
 /**
  * @swagger
@@ -21,28 +22,34 @@ import User from "@/app/models/User";
 export async function GET(req: Request) {
   try {
     await connectDB();
+    const session = await getAuthSession(req);
 
     const { searchParams } = new URL(req.url);
     const query = searchParams.get("q");
 
-    if (!query || query.trim().length === 0) {
-      return NextResponse.json(
-        { success: true, data: [] },
-        { status: 200 }
-      );
+    let queryObj: any = { accountStatus: "active" };
+
+    // Exclude the currently logged-in user from search/suggestions
+    if (session) {
+      queryObj._id = { $ne: session.userId };
+    }
+
+    if (query && query.trim().length > 0) {
+      queryObj = {
+        ...queryObj,
+        $or: [
+           { username: { $regex: query, $options: "i" } },
+           { name: { $regex: query, $options: "i" } }
+        ]
+      };
     }
 
     // Search by username or name using basic regex
-    // For more advanced search, text indexes or MongoDB Atlas Search is recommended
-    const users = await User.find({
-      $or: [
-        { username: { $regex: query, $options: "i" } },
-        { name: { $regex: query, $options: "i" } }
-      ],
-      accountStatus: "active"
-    })
+    // If no query, returns top users by follower count
+    const users = await User.find(queryObj)
     .select("name username avatar isVerified bio followersCount")
-    .limit(20)
+    .sort({ followersCount: -1 }) // Sort top followed users for suggestions
+    .limit(5)
     .lean();
 
     return NextResponse.json(

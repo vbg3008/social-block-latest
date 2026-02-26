@@ -66,7 +66,7 @@ export async function POST(req: Request) {
       message: "Media uploaded successfully",
       data: {
         url: fileUrl,
-        type: file.type,
+        type: file.type.startsWith("video/") ? "video" : "image",
         publicId: uniqueFilename
       }
     }, { status: 201 });

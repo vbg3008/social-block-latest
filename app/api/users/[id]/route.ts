@@ -26,11 +26,24 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   try {
     await connectDB();
     
-    if (!mongoose.isValidObjectId((await params).id)) {
-      return NextResponse.json({ success: false, error: "Invalid user ID format" }, { status: 400 });
+    // Auth Session is needed to resolve 'me' or to determine privacy visibility
+    const session = await getAuthSession(req);
+    let targetId = (await params).id;
+
+    // Resolve 'me' alias to the currently logged in user
+    if (targetId === "me") {
+      if (!session) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      targetId = session.userId;
     }
 
-    const user = await User.findById((await params).id).select("-passwordHash -__v -emailVerificationToken -passwordResetToken");
+    let user;
+    
+    // Check if targetId is an ObjectId, otherwise assume it's a username
+    if (mongoose.isValidObjectId(targetId)) {
+      user = await User.findById(targetId).select("-passwordHash -__v -emailVerificationToken -passwordResetToken");
+    } else {
+      user = await User.findOne({ username: targetId }).select("-passwordHash -__v -emailVerificationToken -passwordResetToken");
+    }
 
     if (!user) {
       return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
@@ -38,8 +51,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     
     // If account is private, and not the current user, we might want to hide certain fields
     // This requires checking the session
-    const session = await getAuthSession(req);
-    const isOwner = session?.userId === (await params).id;
+    const isOwner = session?.userId === targetId || session?.userId === user._id.toString();
     
     if (user.isPrivate && !isOwner) {
        // Ideally verify if the requester is an accepted follower.

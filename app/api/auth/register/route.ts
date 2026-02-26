@@ -89,13 +89,26 @@ export async function POST(req: Request) {
     // Remove password from response
     const { passwordHash: _, ...userResponse } = user.toObject();
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       { 
         success: true, 
         data: { user: userResponse, token } 
       }, 
       { status: 201 }
     );
+
+    // Set the cookie properly so the user is logged in
+    response.cookies.set({
+      name: "token",
+      value: token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+      path: "/",
+    });
+
+    return response;
 
   } catch (error: any) {
     console.error("Register Error:", error);
