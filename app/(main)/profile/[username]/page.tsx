@@ -83,10 +83,15 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           </Avatar>
           
           <div className="w-full flex justify-end mt-4">
-            {/* If not me, show Follow. If me, show Edit Profile */}
-            <Button className="rounded-full font-bold px-6" variant="outline">
-              Follow
-            </Button>
+            {profile.isOwner || username === "me" ? (
+              <Button className="rounded-full font-bold px-6" variant="outline" onClick={() => toast.info("Edit Profile Coming Soon")}>
+                Edit Profile
+              </Button>
+            ) : (
+              <Button className="rounded-full font-bold px-6" variant="outline">
+                Follow
+              </Button>
+            )}
           </div>
         </div>
         

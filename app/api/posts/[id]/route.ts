@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/app/lib/mongo";
 import Post from "@/app/models/Post";
+import Like from "@/app/models/Like";
 import { getAuthSession, unauthorizedResponse } from "@/app/lib/auth";
 import mongoose from "mongoose";
 
@@ -25,21 +26,33 @@ import mongoose from "mongoose";
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const session = await getAuthSession(req);
     
     if (!mongoose.isValidObjectId((await params).id)) {
       return NextResponse.json({ success: false, error: "Invalid post ID" }, { status: 400 });
     }
 
     const post = await Post.findOne({ _id: (await params).id, isDeleted: false })
-      .populate("authorId", "name username avatar isVerified isPrivate");
+      .populate("authorId", "name username avatar isVerified isPrivate")
+      .lean();
 
     if (!post) {
       return NextResponse.json({ success: false, error: "Post not found" }, { status: 404 });
     }
 
-    // TODO: if post author is private, check if requester follows them
+    let isLiked = false;
+    if (session) {
+      const like = await Like.findOne({
+        userId: session.userId,
+        targetId: post._id,
+        targetType: "Post"
+      });
+      if (like) isLiked = true;
+    }
 
-    return NextResponse.json({ success: true, data: post }, { status: 200 });
+    const postData = { ...post, isLiked };
+
+    return NextResponse.json({ success: true, data: postData }, { status: 200 });
 
   } catch (error) {
     console.error("Get Post Error:", error);

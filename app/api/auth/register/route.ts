@@ -74,13 +74,14 @@ export async function POST(req: Request) {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // Create user
+    // Create user with a generated avatar
     const user = await User.create({
       name,
       username: username.toLowerCase(),
       email: email.toLowerCase(),
       passwordHash,
-      role: "user"
+      role: "user",
+      avatar: `https://api.dicebear.com/9.x/avataaars/svg?seed=${username.toLowerCase()}`
     });
 
     // Generate token

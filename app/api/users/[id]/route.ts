@@ -40,9 +40,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     
     // Check if targetId is an ObjectId, otherwise assume it's a username
     if (mongoose.isValidObjectId(targetId)) {
-      user = await User.findById(targetId).select("-passwordHash -__v -emailVerificationToken -passwordResetToken");
+      user = await User.findById(targetId).select("-passwordHash -__v -emailVerificationToken -passwordResetToken").lean();
     } else {
-      user = await User.findOne({ username: targetId }).select("-passwordHash -__v -emailVerificationToken -passwordResetToken");
+      user = await User.findOne({ username: targetId }).select("-passwordHash -__v -emailVerificationToken -passwordResetToken").lean();
     }
 
     if (!user) {
@@ -63,12 +63,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
            avatar: user.avatar,
            isPrivate: true,
            followersCount: user.followersCount,
-           followingCount: user.followingCount
+           followingCount: user.followingCount,
+           isOwner
        };
        return NextResponse.json({ success: true, data: publicProfile });
     }
 
-    return NextResponse.json({ success: true, data: user }, { status: 200 });
+    return NextResponse.json({ success: true, data: { ...user, isOwner } }, { status: 200 });
 
   } catch (error) {
     console.error("Get User Error:", error);

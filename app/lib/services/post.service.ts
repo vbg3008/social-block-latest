@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Post from "@/app/models/Post";
 import Follow from "@/app/models/Follow";
+import Like from "@/app/models/Like";
 import { connectDB } from "@/app/lib/mongo";
 import { CreatePostDTO, GetPostsQueryDTO } from "../validations/post.schema";
 import { NotFoundError, UnauthorizedError } from "../errors";
@@ -60,8 +61,26 @@ export class PostService {
 
     const total = await Post.countDocuments(query);
 
+    // Attach isLiked status if user is logged in
+    let enrichedPosts = posts;
+    if (userId && posts.length > 0) {
+      const postIds = posts.map(p => p._id);
+      const userLikes = await Like.find({
+        userId,
+        targetId: { $in: postIds },
+        targetType: "Post"
+      }).lean();
+
+      const likedPostIds = new Set(userLikes.map(like => like.targetId.toString()));
+      
+      enrichedPosts = posts.map(post => ({
+        ...post,
+        isLiked: likedPostIds.has(post._id.toString())
+      })) as any;
+    }
+
     return {
-      posts,
+      posts: enrichedPosts,
       pagination: {
         total,
         page,
