@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import { Web3LoginButton } from "@/components/auth/Web3LoginButton";
 
 import { useMutation } from "@tanstack/react-query";
 import { useUserStore } from "@/app/store/useUserStore";
@@ -58,6 +59,11 @@ export default function RegisterPage() {
   return (
     <Card className="border-0 shadow-none bg-transparent w-full">
       <CardHeader className="space-y-1 text-center pb-8">
+        <div className="flex justify-center mb-2">
+          <div className="w-16 h-16 overflow-hidden relative drop-shadow-md flex items-center justify-center">
+             <img src="/logos/logo.png" alt="SocialBlock Logo" className="w-full h-full object-contain" />
+          </div>
+        </div>
         <div className="font-bold text-3xl tracking-tighter">SocialBlock</div>
         <CardTitle className="text-2xl text-center">Create an account</CardTitle>
         <CardDescription className="text-center">
@@ -131,6 +137,18 @@ export default function RegisterPage() {
           <Button className="w-full font-bold" type="submit" disabled={isLoading}>
             {isLoading ? "Creating account..." : "Sign up"}
           </Button>
+
+          <div className="relative w-full">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Or</span>
+            </div>
+          </div>
+          
+          <Web3LoginButton />
+
           <div className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link href="/login" className="text-primary hover:underline font-medium">

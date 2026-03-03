@@ -13,6 +13,10 @@ export interface IUser extends Document {
   website?: string;
   location?: string;
   
+  // Web3
+  walletAddress?: string;
+  nonce?: string;
+  
   // Settings
   isPrivate: boolean;
   isVerified: boolean;
@@ -41,18 +45,36 @@ const UserSchema = new Schema<IUser>(
       required: true, 
       unique: true, 
       trim: true,
-      lowercase: true,
-      index: true
+      lowercase: true
     },
     email: { 
       type: String, 
-      required: true, 
-      unique: true, 
+      required: function(this: any) {
+        // Email is required only if walletAddress is not provided
+        return !this.walletAddress;
+      },
+      unique: true,
+      sparse: true, // Allow multiple nulls/undefined if using wallet only
       trim: true,
-      lowercase: true,
-      index: true
+      lowercase: true
     },
-    passwordHash: { type: String, required: true },
+    passwordHash: { 
+      type: String, 
+      required: function(this: any) {
+        // Password is required only if walletAddress is not provided
+        return !this.walletAddress;
+      }
+    },
+    
+    // Web3
+    walletAddress: {
+      type: String,
+      unique: true,
+      sparse: true, // IMPORTANT: Allows multiple null values
+      trim: true,
+      lowercase: true
+    },
+    nonce: { type: String },
     
     bio: { type: String, maxLength: 500 },
     avatar: { type: String },
@@ -81,8 +103,6 @@ const UserSchema = new Schema<IUser>(
 );
 
 // Indexes for common queries
-UserSchema.index({ email: 1 });
-UserSchema.index({ username: 1 });
 UserSchema.index({ accountStatus: 1 });
 
 const User: Model<IUser> =

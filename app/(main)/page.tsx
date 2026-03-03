@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUserStore } from "@/app/store/useUserStore";
 import { api } from "@/app/lib/api";
+import axios from "axios";
 
 export default function HomePage() {
   const queryClient = useQueryClient();
@@ -34,21 +35,22 @@ export default function HomePage() {
       if (mediaFiles.length > 0) {
         const uploadPromises = mediaFiles.map(async (file) => {
           // 1. Get Signed URL
-          const signRes = await fetch(`/api/upload/sign?name=${encodeURIComponent(file.name)}`);
-          const signData = await signRes.json();
+          const signRes = await api.get(`/api/upload/sign?name=${encodeURIComponent(file.name)}`);
+          const signData = signRes.data as any;
           if (!signData.success || !signData.url) throw new Error("Failed to get presigned URL");
 
-          // 2. Upload to Pinata
+          // 2. Upload to Pinata via Axios
           const formData = new FormData();
           formData.append("file", file);
           formData.append("network", "public");
 
-          const uploadRes = await fetch(signData.url, {
-            method: "POST",
-            body: formData,
+          const uploadRes = await axios.post(signData.url, formData, {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
           });
 
-          const uploadResult = await uploadRes.json();
+          const uploadResult = uploadRes.data;
           if (!uploadResult.data) throw new Error("Pinata upload failed");
 
           const fileUrl = `https://${gatewayUrl}/ipfs/${uploadResult.data.cid}`;

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Home, Compass, Bell, User, Search, Twitter, LogOut } from "lucide-react";
+import { Home, Compass, Bell, User, Search, PenLine, LogOut } from "lucide-react";
 import { RightSidebar } from "@/components/shared/RightSidebar";
 import { useUserStore } from "@/app/store/useUserStore";
 import { api } from "@/app/lib/api";
@@ -38,8 +38,8 @@ export default function MainLayout({
         {/* Sidebar */}
         <aside className="hidden md:flex flex-col w-64 lg:w-72 border-r border-border/50 bg-background/40 backdrop-blur-xl p-4 fixed h-full z-10 transition-all shadow-[1px_0_30px_rgba(0,0,0,0.02)]">
           <div className="flex items-center space-x-3 mb-8 px-4 py-2 hover:bg-muted/50 rounded-full cursor-pointer transition-colors w-max">
-            <div className="bg-primary text-primary-foreground p-2 rounded-full">
-               <Twitter size={24} />
+            <div className="w-10 h-10 overflow-hidden relative drop-shadow-md flex items-center justify-center">
+               <img src="/logos/icon.png" alt="SocialBlock Logo" className="w-full h-full object-contain" />
             </div>
             <span className="font-extrabold text-2xl tracking-tighter hidden lg:block">SocialBlock</span>
           </div>
@@ -75,7 +75,7 @@ export default function MainLayout({
               className="bg-primary text-primary-foreground font-bold text-lg rounded-full py-3 mt-6 hover:bg-primary/90 transition-colors shadow-lg shadow-primary/25"
             >
               <span className="hidden lg:block">Post</span>
-              <span className="lg:hidden mx-auto"><Twitter size={20} className="mx-auto"/></span>
+              <span className="lg:hidden mx-auto"><PenLine size={20} className="mx-auto"/></span>
             </button>
           </nav>
         </aside>

@@ -74,7 +74,7 @@ export function CreatePostInput({ user, onSubmit, placeholder = "What's happenin
       <div className="flex-1">
         <div className="w-full">
           <Textarea 
-            className="w-full bg-transparent border-0 focus-visible:ring-0 resize-none px-0 py-2 text-xl placeholder:text-xl placeholder:text-muted-foreground/70 min-h-[50px] overflow-hidden" 
+            className="w-full  bg-transparent border-0 focus-visible:ring-0 resize-none px-0 py-3 mt-1 text-xl placeholder:text-xl placeholder:text-muted-foreground/70 min-h-[60px]" 
             placeholder={placeholder}
             value={content}
             onChange={(e) => setContent(e.target.value)}

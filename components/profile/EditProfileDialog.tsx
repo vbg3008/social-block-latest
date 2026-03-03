@@ -83,8 +83,8 @@ export function EditProfileDialog({ profile, children }: { profile: any, childre
       const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || "gateway.pinata.cloud";
 
       const uploadToPinata = async (file: File) => {
-        const signRes = await fetch(`/api/upload/sign?name=${encodeURIComponent(file.name)}`);
-        const signData = await signRes.json();
+        const signRes = await api.get(`/api/upload/sign?name=${encodeURIComponent(file.name)}`);
+        const signData = signRes.data as any;
         
         if (!signData.success || !signData.url) throw new Error("Failed to get presigned URL");
 
@@ -92,12 +92,13 @@ export function EditProfileDialog({ profile, children }: { profile: any, childre
         uploadData.append("file", file);
         uploadData.append("network", "public");
 
-        const uploadRes = await fetch(signData.url, {
-          method: "POST",
-          body: uploadData,
+        const uploadRes = await axios.post(signData.url, uploadData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         });
 
-        const uploadResult = await uploadRes.json();
+        const uploadResult = uploadRes.data;
         if (!uploadResult.data) throw new Error("Pinata upload failed");
         
         return `https://${gatewayUrl}/ipfs/${uploadResult.data.cid}`;
@@ -108,10 +109,8 @@ export function EditProfileDialog({ profile, children }: { profile: any, childre
         const cid = oldUrl.split("/ipfs/")[1]?.split(/[/?#]/)[0];
         if (cid) {
           try {
-            await fetch("/api/upload/delete", {
-              method: "DELETE",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ cid })
+            await api.delete("/api/upload/delete", {
+              data: { cid }
             });
           } catch (e) {
             console.error("Failed to delete old file", e);

@@ -81,7 +81,7 @@ export async function POST(req: Request) {
       email: email.toLowerCase(),
       passwordHash,
       role: "user",
-      avatar: `https://api.dicebear.com/9.x/avataaars/svg?seed=${username.toLowerCase()}`
+      avatar: `https://api.dicebear.com/9.x/micah/svg?seed=${username.toLowerCase()}`
     });
 
     // Generate token

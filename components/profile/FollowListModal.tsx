@@ -24,7 +24,7 @@ export function FollowListModal({ userId, type, isOpen, onClose, title }: Follow
     queryKey: [type, userId],
     queryFn: async () => {
       const res = await api.get(`/api/users/${userId}/${type}`);
-      return res.data;
+      return res;
     },
     enabled: isOpen && !!userId,
   });

@@ -6,7 +6,15 @@ export async function proxy(request: NextRequest) {
 
   const isApiRoute = pathname.startsWith("/api/");
   const isAuthRoute = ["/login", "/register", "/forgot-password", "/reset-password"].includes(pathname);
-  const isPublicApiRoute = ["/api/auth/login", "/api/auth/register", "/api/swagger", "/api/auth/forgot-password", "/api/auth/reset-password"].includes(pathname);
+  const isPublicApiRoute = [
+    "/api/auth/login", 
+    "/api/auth/register", 
+    "/api/swagger", 
+    "/api/auth/forgot-password", 
+    "/api/auth/reset-password",
+    "/api/auth/web3/nonce",
+    "/api/auth/web3/login"
+  ].includes(pathname);
 
   const token = request.cookies.get("token")?.value;
 

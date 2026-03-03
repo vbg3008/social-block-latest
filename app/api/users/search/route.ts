@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/app/lib/mongo";
 import User from "@/app/models/User";
+import Follow from "@/app/models/Follow";
 import { getAuthSession } from "@/app/lib/auth";
 
 /**
@@ -31,7 +32,14 @@ export async function GET(req: Request) {
 
     // Exclude the currently logged-in user from search/suggestions
     if (session) {
-      queryObj._id = { $ne: session.userId };
+      const following = await Follow.find({ followerId: session.userId, status: "accepted" }).lean();
+      const followingIds = following.map((f: any) => f.followingId);
+      
+      if (followingIds.length > 0) {
+        queryObj._id = { $nin: [session.userId, ...followingIds] };
+      } else {
+        queryObj._id = { $ne: session.userId };
+      }
     }
 
     if (query && query.trim().length > 0) {
