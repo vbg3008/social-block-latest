@@ -15,6 +15,7 @@ import { api } from "@/app/lib/api";
 export default function HomePage() {
   const queryClient = useQueryClient();
   const currentUser = useUserStore((state) => state.user);
+  console.log("current user",currentUser);
 
   const { data: postsData, isLoading: loading } = useQuery({
     queryKey: ["posts", "global"],
@@ -28,16 +29,35 @@ export default function HomePage() {
   const createPostMutation = useMutation({
     mutationFn: async ({ content, mediaFiles }: { content: string, mediaFiles: File[] }) => {
       const media = [];
+      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || "gateway.pinata.cloud";
+      
       if (mediaFiles.length > 0) {
         const uploadPromises = mediaFiles.map(async (file) => {
+          // 1. Get Signed URL
+          const signRes = await fetch(`/api/upload/sign?name=${encodeURIComponent(file.name)}`);
+          const signData = await signRes.json();
+          if (!signData.success || !signData.url) throw new Error("Failed to get presigned URL");
+
+          // 2. Upload to Pinata
           const formData = new FormData();
-          formData.append("file", file); // API expects "file" key
-          
-          const uploadData: any = await api.post("/api/upload", formData, {
-            headers: { "Content-Type": "multipart/form-data" }
+          formData.append("file", file);
+          formData.append("network", "public");
+
+          const uploadRes = await fetch(signData.url, {
+            method: "POST",
+            body: formData,
           });
+
+          const uploadResult = await uploadRes.json();
+          if (!uploadResult.data) throw new Error("Pinata upload failed");
+
+          const fileUrl = `https://${gatewayUrl}/ipfs/${uploadResult.data.cid}`;
           
-          return uploadData.data; // returns { url, type, publicId }
+          return {
+            url: fileUrl,
+            type: file.type.startsWith("video/") ? "video" : "image",
+            publicId: uploadResult.data.cid
+          };
         });
         
         const uploadedFiles = await Promise.all(uploadPromises);

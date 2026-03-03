@@ -12,10 +12,17 @@ import { format } from "date-fns";
 
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/app/lib/api";
+import { EditProfileDialog } from "@/components/profile/EditProfileDialog";
+import { FollowListModal } from "@/components/profile/FollowListModal";
 
 export default function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const unwrappedParams = use(params);
   const username = unwrappedParams.username;
+  const [followModalConfig, setFollowModalConfig] = useState<{ isOpen: boolean, type: "followers" | "following", title: string }>({
+    isOpen: false,
+    type: "followers",
+    title: "",
+  });
   
   const { data: profileData, isLoading: loadingProfile } = useQuery({
     queryKey: ["profile", username],
@@ -70,9 +77,15 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         </div>
       </header>
       
-      {/* Hero Cover Image Placeholder */}
-      <div className="h-48 bg-muted w-full relative">
-        {/* Can add standard cover photo implementation here */}
+      {/* Hero Cover Image */}
+      <div className="h-48 bg-muted w-full relative overflow-hidden">
+        {profile.coverImage && (
+          <img 
+            src={profile.coverImage} 
+            alt={`${profile.name}'s cover`} 
+            className="w-full h-full object-cover" 
+          />
+        )}
       </div>
       
       <div className="px-4 pb-4">
@@ -84,9 +97,11 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           
           <div className="w-full flex justify-end mt-4">
             {profile.isOwner || username === "me" ? (
-              <Button className="rounded-full font-bold px-6" variant="outline" onClick={() => toast.info("Edit Profile Coming Soon")}>
-                Edit Profile
-              </Button>
+              <EditProfileDialog profile={profile}>
+                <Button className="rounded-full font-bold px-6" variant="outline">
+                  Edit Profile
+                </Button>
+              </EditProfileDialog>
             ) : (
               <Button className="rounded-full font-bold px-6" variant="outline">
                 Follow
@@ -110,14 +125,6 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                 <span>{profile.location}</span>
               </div>
             )}
-            {profile.website && (
-              <div className="flex items-center space-x-1">
-                <LinkIcon size={16} />
-                <a href={profile.website} target="_blank" rel="noreferrer" className="text-primary hover:underline">
-                  {profile.website.replace(/^https?:\/\//, '')}
-                </a>
-              </div>
-            )}
             <div className="flex items-center space-x-1">
               <CalendarDays size={16} />
               <span>Joined {format(new Date(profile.createdAt || Date.now()), "MMMM yyyy")}</span>
@@ -125,15 +132,33 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           </div>
           
           <div className="flex space-x-4 mt-4 text-[15px]">
-            <a href={`/profile/${profile.username}/following`} className="hover:underline">
-              <span className="font-bold text-foreground">{profile.followingCount || 0}</span> <span className="text-muted-foreground">Following</span>
-            </a>
-            <a href={`/profile/${profile.username}/followers`} className="hover:underline">
-              <span className="font-bold text-foreground">{profile.followersCount || 0}</span> <span className="text-muted-foreground">Followers</span>
-            </a>
+            <button 
+              onClick={() => setFollowModalConfig({ isOpen: true, type: "following", title: "Following" })}
+              className="hover:underline flex items-center space-x-1"
+            >
+              <span className="font-bold text-foreground">{profile.followingCount || 0}</span> 
+              <span className="text-muted-foreground">Following</span>
+            </button>
+            <button 
+              onClick={() => setFollowModalConfig({ isOpen: true, type: "followers", title: "Followers" })}
+              className="hover:underline flex items-center space-x-1"
+            >
+              <span className="font-bold text-foreground">{profile.followersCount || 0}</span> 
+              <span className="text-muted-foreground">Followers</span>
+            </button>
           </div>
         </div>
       </div>
+      
+      {profile._id && (
+        <FollowListModal 
+          userId={profile._id}
+          type={followModalConfig.type}
+          title={followModalConfig.title}
+          isOpen={followModalConfig.isOpen}
+          onClose={() => setFollowModalConfig(prev => ({ ...prev, isOpen: false }))}
+        />
+      )}
       
       <Tabs defaultValue="posts" className="w-full mt-2">
         <TabsList className="w-full justify-around rounded-none bg-transparent border-b h-14 p-0">
@@ -163,7 +188,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                 <p>When they post, their posts will show up here.</p>
               </div>
             ) : (
-              posts.map((post: any) => <PostCard key={post._id} post={post} />)
+              posts.map((post: any) => <PostCard key={post._id} post={post} isDeletable={profile.isOwner || username === "me"} />)
             )}
           </div>
         </TabsContent>

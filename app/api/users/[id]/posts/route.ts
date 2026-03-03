@@ -3,6 +3,8 @@ import { connectDB } from "@/app/lib/mongo";
 import Post from "@/app/models/Post";
 import User from "@/app/models/User";
 import mongoose from "mongoose";
+import { getAuthSession } from "@/app/lib/auth";
+import Like from "@/app/models/Like";
 
 /**
  * @swagger
@@ -63,10 +65,39 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       .lean();
 
     const total = await Post.countDocuments(query);
+    
+    // Add isLiked flag if user is logged in
+    const session = await getAuthSession(req);
+    const userId = session?.userId;
+    
+    // Extract post IDs
+    const postIds = posts.map(p => p._id);
+    
+    // Default to false initially
+    let enrichedPosts = posts.map(post => ({ ...post, isLiked: false }));
+
+    // If logged in, fetch accurate like data from the Like collection
+    if (userId && posts.length > 0) {
+      const userLikes = await Like.find({
+        userId,
+        targetId: { $in: postIds },
+        targetType: "Post"
+      }).lean();
+
+      const likedPostIds = new Set((userLikes as any[]).map(like => like.targetId.toString()));
+      
+      enrichedPosts = posts.map(post => {
+        const { likes, ...postWithoutLikes } = post as any;
+        return {
+          ...postWithoutLikes,
+          isLiked: likedPostIds.has(post._id.toString())
+        };
+      });
+    }
 
     return NextResponse.json({
       success: true,
-      data: posts,
+      data: enrichedPosts,
       pagination: {
         total,
         page,

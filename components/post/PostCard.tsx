@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Link as LinkIcon, AlertTriangle } from "lucide-react";
+import { Heart, MessageCircle, Share2, MoreHorizontal, Link as LinkIcon, AlertTriangle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -9,6 +9,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLike } from "@/app/hooks/useLike";
@@ -30,17 +38,48 @@ interface PostCardProps {
     createdAt: string;
     isLiked?: boolean; // Ideally the backend tells us if the user liked it
   };
+  isDeletable?: boolean;
 }
 
-export function PostCard({ post }: PostCardProps) {
-  console.log("PostCard post:", post);  
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/app/lib/api";
+
+export function PostCard({ post, isDeletable }: PostCardProps) {
+  // console.log("PostCard post:", post);  
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { toggleLike } = useLike();
   const { authorId: author, createdAt, content, media, likesCount, commentsCount, _id, isLiked: initialIsLiked } = post;
   
   // Local state for instant optimistic UI feedback while React Query processes
   const [optimisticLiked, setOptimisticLiked] = useState(initialIsLiked || false);
   const [optimisticLikesCount, setOptimisticLikesCount] = useState(likesCount || 0);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await api.delete(`/api/posts/${_id}`);
+    },
+    onSuccess: () => {
+      toast.success("Post deleted");
+      setShowDeleteDialog(false);
+      queryClient.invalidateQueries({ queryKey: ["userPosts"] });
+      queryClient.invalidateQueries({ queryKey: ["posts", "global"] });
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.error || "Failed to delete post");
+      setShowDeleteDialog(false);
+    }
+  });
+
+  const confirmDelete = () => {
+    deleteMutation.mutate();
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowDeleteDialog(true);
+  };
 
   // Sync state if server data changes (e.g. after a refetch)
   useEffect(() => {
@@ -138,8 +177,42 @@ export function PostCard({ post }: PostCardProps) {
                   <AlertTriangle className="mr-2 h-4 w-4" />
                   <span>Report post</span>
                 </DropdownMenuItem>
+                {isDeletable && (
+                  <DropdownMenuItem onClick={handleDeleteClick} className="text-destructive focus:text-destructive">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    <span>Delete post</span>
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Custom Delete Confirmation Dialog */}
+            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+              <DialogContent className="sm:max-w-[425px]" onClick={(e) => e.stopPropagation()}>
+                <DialogHeader>
+                  <DialogTitle>Delete Post</DialogTitle>
+                  <DialogDescription>
+                    Are you sure you want to delete this post? This action cannot be undone and will permanently remove all associated media.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="mt-4 flex gap-2 sm:justify-end">
+                  <Button 
+                    variant="outline" 
+                    onClick={(e) => { e.stopPropagation(); setShowDeleteDialog(false); }}
+                    disabled={deleteMutation.isPending}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    onClick={(e) => { e.stopPropagation(); confirmDelete(); }}
+                    disabled={deleteMutation.isPending}
+                  >
+                    {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
           
           <div className="mt-1 text-foreground whitespace-pre-wrap word-break-words">

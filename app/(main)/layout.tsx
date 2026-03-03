@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Home, Compass, Bell, User, Search, Twitter } from "lucide-react";
+import { Home, Compass, Bell, User, Search, Twitter, LogOut } from "lucide-react";
 import { RightSidebar } from "@/components/shared/RightSidebar";
+import { useUserStore } from "@/app/store/useUserStore";
+import { api } from "@/app/lib/api";
+import { toast } from "sonner";
 
 export default function MainLayout({
   children,
@@ -11,6 +14,18 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const { logout } = useUserStore();
+
+  const handleLogout = async () => {
+    try {
+      await api.post("/api/auth/logout");
+      logout();
+      toast.success("Logged out successfully");
+      router.push("/login");
+    } catch (error) {
+      toast.error("Failed to logout");
+    }
+  };
   
   return (
     <div className="flex justify-center min-h-screen bg-background text-foreground transition-colors duration-300 relative overflow-x-hidden">
@@ -48,6 +63,14 @@ export default function MainLayout({
             </Link>
             
             <button 
+              onClick={handleLogout}
+              className="flex items-center space-x-4 font-bold text-xl hover:bg-destructive/10 text-destructive p-3 rounded-full transition-colors group mt-auto"
+            >
+              <LogOut className="group-hover:scale-110 transition-transform" />
+              <span className="hidden lg:block">Logout</span>
+            </button>
+            
+            <button 
               onClick={() => router.push('/')}
               className="bg-primary text-primary-foreground font-bold text-lg rounded-full py-3 mt-6 hover:bg-primary/90 transition-colors shadow-lg shadow-primary/25"
             >
@@ -79,6 +102,9 @@ export default function MainLayout({
           <Link href="/profile/me" className="p-3 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all">
             <User size={26} />
           </Link>
+          <button onClick={handleLogout} className="p-3 text-destructive hover:bg-destructive/10 rounded-full transition-all">
+            <LogOut size={26} />
+          </button>
         </nav>
       </div>
     </div>

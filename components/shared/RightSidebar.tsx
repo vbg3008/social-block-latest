@@ -25,13 +25,13 @@ export function RightSidebar() {
   return (
     <aside className="hidden lg:block w-80 p-6 space-y-6">
       <div className="sticky top-0 bg-background/95 backdrop-blur z-10 pt-2 pb-4">
-        <div className="relative group">
+        <Link href={"/"} className="relative group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5 group-focus-within:text-primary transition-colors" />
           <Input 
             className="pl-12 rounded-full bg-muted/30 border-transparent focus-visible:ring-1 focus-visible:ring-primary focus-visible:bg-background h-12 text-md transition-all pt-1 shadow-sm backdrop-blur-md hover:bg-muted/50"
             placeholder="Search SocialBlock"
           />
-        </div>
+        </Link >
       </div>
       
       <div className="bg-muted/20 backdrop-blur-md rounded-2xl border border-border/40 overflow-hidden shadow-sm shadow-border/10">

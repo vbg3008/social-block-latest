@@ -172,6 +172,25 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
+    // Delete associated media from Pinata
+    if (post.media && post.media.length > 0) {
+      const cidsToDelete = post.media
+        .map((m: any) => m.url)
+        .filter((url: string) => url && url.includes("/ipfs/"))
+        .map((url: string) => url.split("/ipfs/")[1]?.split(/[/?#]/)[0])
+        .filter(Boolean);
+
+      if (cidsToDelete.length > 0) {
+        try {
+          // Import pinata at the top dynamically or globally
+          const { pinata } = await import("@/lib/pinata.config");
+          await pinata.files.public.delete(cidsToDelete);
+        } catch (pinataErr) {
+          console.error("Failed to delete Pinata files for post:", pinataErr);
+        }
+      }
+    }
+
     post.isDeleted = true;
     await post.save();
 

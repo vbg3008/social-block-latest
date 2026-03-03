@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isApiRoute = pathname.startsWith("/api/");
-  const isAuthRoute = pathname === "/login" || pathname === "/register";
-  const isPublicApiRoute = ["/api/auth/login", "/api/auth/register", "/api/swagger"].includes(pathname);
+  const isAuthRoute = ["/login", "/register", "/forgot-password", "/reset-password"].includes(pathname);
+  const isPublicApiRoute = ["/api/auth/login", "/api/auth/register", "/api/swagger", "/api/auth/forgot-password", "/api/auth/reset-password"].includes(pathname);
 
   const token = request.cookies.get("token")?.value;
 
