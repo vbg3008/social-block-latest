@@ -30,6 +30,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "^7.71.2",
+    "react-intersection-observer": "^10.0.3",
     "redis": "^5.11.0",
     "sharp": "^0.34.5",
     "siwe": "^3.0.0",

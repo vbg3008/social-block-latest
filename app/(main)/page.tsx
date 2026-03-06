@@ -5,10 +5,12 @@ import { CreatePostInput } from "@/components/shared/CreatePostInput";
 import { PostCard } from "@/components/post/PostCard";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 
 // Use actual Zustand store for user info now
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInView } from "react-intersection-observer";
 import { useUserStore } from "@/app/store/useUserStore";
 import { api } from "@/app/lib/api";
 import axios from "axios";
@@ -18,14 +20,36 @@ export default function HomePage() {
   const currentUser = useUserStore((state) => state.user);
   console.log("current user",currentUser);
 
-  const { data: postsData, isLoading: loading } = useQuery({
+  const { ref, inView } = useInView();
+
+  const { 
+    data, 
+    isLoading: loading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
+  } = useInfiniteQuery({
     queryKey: ["posts", "global"],
-    queryFn: async () => {
-      return await api.get("/api/posts?type=global");
+    queryFn: async ({ pageParam = 1 }) => {
+      const res = await api.get(`/api/posts?type=global&page=${pageParam}&limit=10`);
+      return res.data;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage: any) => {
+      if (lastPage?.pagination?.page < lastPage?.pagination?.pages) {
+        return lastPage.pagination.page + 1;
+      }
+      return undefined;
     }
   });
 
-  const posts = (postsData as any)?.data?.posts || [];
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const allPosts = data?.pages.flatMap((page: any) => page.posts || []) || [];
 
   const createPostMutation = useMutation({
     mutationFn: async ({ content, mediaFiles }: { content: string, mediaFiles: File[] }) => {
@@ -119,14 +143,25 @@ export default function HomePage() {
               </div>
             </div>
           ))
-        ) : posts.length === 0 ? (
+        ) : allPosts.length === 0 ? (
           <div className="p-10 text-center text-muted-foreground">
             No posts to show. Start following people or write your first post!
           </div>
         ) : (
-          posts.map((post: any) => (
-            <PostCard key={post._id} post={post} />
-          ))
+          <>
+            {allPosts.map((post: any) => (
+              <PostCard key={post._id} post={post} />
+            ))}
+            
+            {/* Infinite Scroll Trigger Element */}
+            <div ref={ref} className="h-20 w-full flex items-center justify-center py-6">
+              {isFetchingNextPage ? (
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              ) : !hasNextPage ? (
+                <p className="text-sm text-muted-foreground">You've reached the end!</p>
+              ) : null}
+            </div>
+          </>
         )}
       </div>
     </div>
