@@ -1,49 +1,38 @@
-import { useState, useCallback, useEffect } from "react";
-import { api } from "../lib/api";
-import { CreatePostDTO, GetPostsQueryDTO } from "../lib/validations/post.schema";
-import { ApiContract } from "../lib/types/api";
+import { useState } from "react";
+import { useReadContract, useWriteContract, useConnection } from "wagmi";
+import SocialBlockABI from "../../components/shared/SocialBlock.json";
+import { CreatePostDTO } from "../lib/validations/post.schema";
 
-/**
- * Hook to manage fetching the post feed with loading/error states.
- */
-export function usePosts(params?: GetPostsQueryDTO) {
-  const [data, setData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const abi = SocialBlockABI.abi;
 
-  const fetchPosts = useCallback(async (queryParams?: GetPostsQueryDTO) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      // Create query string manually
-      const searchParams = new URLSearchParams();
-      const finalParams: Partial<GetPostsQueryDTO> = queryParams || params || {};
-      
-      if (finalParams.type) searchParams.set("type", finalParams.type);
-      if (finalParams.page) searchParams.set("page", finalParams.page.toString());
-      if (finalParams.limit) searchParams.set("limit", finalParams.limit.toString());
+export function usePosts(params?: { limit?: number, offset?: number }) {
+  const limit = params?.limit || 10;
+  const offset = params?.offset || 0;
 
-      const res = await api.get<any, ApiContract>(`/api/posts?${searchParams.toString()}`);
-      setData(res.data);
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch posts");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [params]);
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: contractAddress,
+    abi: abi,
+    functionName: "getRecentPosts",
+    args: [BigInt(limit), BigInt(offset)],
+  });
 
-  // Optionally auto-fetch on mount
-  useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
-
-  return { data, isLoading, error, refetch: fetchPosts };
+  return { 
+    data: data ? Array.from(data as any[]).map((p: any) => ({
+      id: Number(p.id),
+      author: p.author,
+      contentCid: p.contentCid,
+      timestamp: Number(p.timestamp),
+      likesCount: Number(p.likesCount)
+    })) : [], 
+    isLoading, 
+    error: error?.message || null, 
+    refetch 
+  };
 }
 
-/**
- * Hook for creating a post with associated states.
- */
 export function useCreatePost() {
+  const { writeContractAsync } = useWriteContract();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<any>(null);
 
@@ -51,14 +40,19 @@ export function useCreatePost() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await api.post<any, ApiContract>("/api/posts", dto);
-      return res.data; // Newly created post
-    } catch (err: any) {
-      // Keep details if validation failed
-      setError({
-        message: err.message,
-        details: err.details
+      // In a real dApp, we would upload to IPFS here to get the CID
+      // For now we mock the CID or pass a placeholder if not provided
+      const cid = "ipfs://placeholder_cid";
+      
+      const tx = await writeContractAsync({
+        address: contractAddress,
+        abi: abi,
+        functionName: "createPost",
+        args: [cid],
       });
+      return tx;
+    } catch (err: any) {
+      setError({ message: err.message || "Failed to create post" });
       throw err;
     } finally {
       setIsLoading(false);

@@ -1,11 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useDisconnect, useAccount } from "wagmi";
 import { Home, Compass, Bell, User, Search, PenLine, LogOut } from "lucide-react";
 import { RightSidebar } from "@/components/shared/RightSidebar";
 import { useUserStore } from "@/app/store/useUserStore";
-import { api } from "@/app/lib/api";
+// import { api } from "@/app/lib/api";
 import { toast } from "sonner";
 
 export default function MainLayout({
@@ -14,15 +17,30 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { logout } = useUserStore();
+  const { logout, user, isLoading } = useUserStore();
+  const { disconnect } = useDisconnect();
+  // We explicitly import useAccount here to securely evaluate Wagmi state post-hydration
+  const { isConnected, isConnecting, isReconnecting } = useAccount();
+
+  useEffect(() => {
+    // Wait for wagmi to finish its initial connection/reconnection lifecycle evaluation
+    const isWagmiLoading = isConnecting || isReconnecting;
+    
+    // If we've finished checking the session and there's no user or disconnected wallet, boot them out
+    if (!isLoading && !isWagmiLoading && (!user || !isConnected)) {
+      window.location.href = "/login";
+    }
+  }, [user, isLoading, isConnected, isConnecting, isReconnecting]);
 
   const handleLogout = async () => {
     try {
-      await api.post("/api/auth/logout");
+      disconnect();
+      localStorage.clear(); // Aggressively wipe wagmi cached connection
+      document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"; // Clear legacy JWT token cookie
       logout();
       toast.success("Logged out successfully");
-      router.push("/login");
-    } catch (error) {
+      window.location.href = "/login"; // Force full page reload to flush wagmi context
+    } catch (_error) {
       toast.error("Failed to logout");
     }
   };
@@ -39,7 +57,7 @@ export default function MainLayout({
         <aside className="hidden md:flex flex-col w-64 lg:w-72 border-r border-border/50 bg-background/40 backdrop-blur-xl p-4 fixed h-full z-10 transition-all shadow-[1px_0_30px_rgba(0,0,0,0.02)]">
           <div className="flex items-center space-x-3 mb-8 px-4 py-2 hover:bg-muted/50 rounded-full cursor-pointer transition-colors w-max">
             <div className="w-10 h-10 overflow-hidden relative drop-shadow-md flex items-center justify-center">
-               <img src="/logos/icon.png" alt="SocialBlock Logo" className="w-full h-full object-contain" />
+               <Image src="/logos/icon.png" alt="SocialBlock Logo" fill className="object-contain" priority />
             </div>
             <span className="font-extrabold text-2xl tracking-tighter hidden lg:block">SocialBlock</span>
           </div>

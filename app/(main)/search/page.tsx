@@ -20,7 +20,7 @@ export function useLocalDebounce<T>(value: T, delay: number): T {
 }
 
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/app/lib/api";
+// import { api } from "@/app/lib/api";
 
 export default function SearchPage() {
   const [query, setQuery] = useState("");
@@ -29,7 +29,7 @@ export default function SearchPage() {
   const { data: searchData, isLoading: loading } = useQuery({
     queryKey: ["search", debouncedQuery],
     queryFn: async () => {
-      return await api.get(`/api/users/search?q=${encodeURIComponent(debouncedQuery)}`);
+      return []; // Search not yet indexed on blockchain
     },
     enabled: debouncedQuery.trim().length > 0 // Only run query if there's text
   });

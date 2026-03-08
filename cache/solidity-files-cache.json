@@ -1,0 +1,41 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "C:\\Users\\VBG\\Desktop\\Projects\\SocialBlock-26\\social-block\\contracts\\SocialBlock.sol": {
+      "lastModificationDate": 1772821611651,
+      "contentHash": "3f4477367b41873d2b37c5f0c2106268",
+      "sourceName": "contracts/SocialBlock.sol",
+      "solcConfig": {
+        "version": "0.8.28",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.28"
+      ],
+      "artifacts": [
+        "SocialBlock"
+      ]
+    }
+  }
+}

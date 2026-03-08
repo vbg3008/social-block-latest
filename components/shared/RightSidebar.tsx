@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { UserCard } from "@/components/user/UserCard";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/app/lib/api";
+// import { api } from "@/app/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFollow } from "@/app/hooks/useFollow";
 
@@ -13,7 +13,7 @@ export function RightSidebar() {
   const { data: suggestionsData, isLoading } = useQuery({
     queryKey: ["users", "suggestions"],
     queryFn: async () => {
-      return await api.get("/api/users/search?q=");
+      return []; // Sidebar suggestions not implemented on blockchain
     },
     // Prevent refetching suggestions too often
     staleTime: 5 * 60 * 1000, 

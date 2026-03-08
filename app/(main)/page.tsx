@@ -1,109 +1,46 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { CreatePostInput } from "@/components/shared/CreatePostInput";
 import { PostCard } from "@/components/post/PostCard";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
-
-// Use actual Zustand store for user info now
-
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useInView } from "react-intersection-observer";
 import { useUserStore } from "@/app/store/useUserStore";
-import { api } from "@/app/lib/api";
-import axios from "axios";
+
+// Web3 Hooks
+import { usePosts, useCreatePost } from "@/app/hooks/usePosts";
 
 export default function HomePage() {
-  const queryClient = useQueryClient();
   const currentUser = useUserStore((state) => state.user);
-  console.log("current user",currentUser);
 
-  const { ref, inView } = useInView();
-
-  const { 
-    data, 
-    isLoading: loading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage
-  } = useInfiniteQuery({
-    queryKey: ["posts", "global"],
-    queryFn: async ({ pageParam = 1 }) => {
-      const res = await api.get(`/api/posts?type=global&page=${pageParam}&limit=10`);
-      return res.data;
-    },
-    initialPageParam: 1,
-    getNextPageParam: (lastPage: any) => {
-      if (lastPage?.pagination?.page < lastPage?.pagination?.pages) {
-        return lastPage.pagination.page + 1;
-      }
-      return undefined;
-    }
-  });
-
-  useEffect(() => {
-    if (inView && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  const allPosts = data?.pages.flatMap((page: any) => page.posts || []) || [];
-
-  const createPostMutation = useMutation({
-    mutationFn: async ({ content, mediaFiles }: { content: string, mediaFiles: File[] }) => {
-      const media = [];
-      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || "gateway.pinata.cloud";
-      
-      if (mediaFiles.length > 0) {
-        const uploadPromises = mediaFiles.map(async (file) => {
-          // 1. Get Signed URL
-          const signRes = await api.get(`/api/upload/sign?name=${encodeURIComponent(file.name)}`);
-          const signData = signRes.data as any;
-          if (!signData.success || !signData.url) throw new Error("Failed to get presigned URL");
-
-          // 2. Upload to Pinata via Axios
-          const formData = new FormData();
-          formData.append("file", file);
-          formData.append("network", "public");
-
-          const uploadRes = await axios.post(signData.url, formData, {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          });
-
-          const uploadResult = uploadRes.data;
-          if (!uploadResult.data) throw new Error("Pinata upload failed");
-
-          const fileUrl = `https://${gatewayUrl}/ipfs/${uploadResult.data.cid}`;
-          
-          return {
-            url: fileUrl,
-            type: file.type.startsWith("video/") ? "video" : "image",
-            publicId: uploadResult.data.cid
-          };
-        });
-        
-        const uploadedFiles = await Promise.all(uploadPromises);
-        media.push(...uploadedFiles);
-      }
-      
-      return await api.post("/api/posts", { content, media });
-    },
-    onSuccess: () => {
-      toast.success("Post created successfully!");
-      queryClient.invalidateQueries({ queryKey: ["posts", "global"] });
-    },
-    onError: (err: any) => {
-      toast.error(err.message);
-    }
-  });
+  // Wagmi-based Custom Hooks
+  const { data: allPosts, isLoading: loading, error, refetch } = usePosts({ limit: 50, offset: 0 });
+  const { createPost, isLoading: isCreating } = useCreatePost();
 
   const handleCreatePost = async (content: string, mediaFiles: File[]) => {
-    await createPostMutation.mutateAsync({ content, mediaFiles });
+    try {
+      // Create local offchain media uploading placeholder (since IPFS logic runs in useCreatePost wrapper)
+      await createPost({ 
+        content, 
+        media: mediaFiles.map(file => ({
+          url: URL.createObjectURL(file), // Mock URL for the DTO
+          type: file.type.startsWith("video/") ? "video" : "image",
+          publicId: file.name
+        })),
+        visibility: "public"
+      });
+      toast.success("Transaction submitted! Waiting for blocks...");
+      // In a real dapp, you'd listen for the Tx Receipt before refetching
+      setTimeout(() => refetch(), 4000); 
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create post");
+    }
   };
+
+  if (error) {
+    return <div className="p-10 text-destructive">Error loading Web3 posts: {error}</div>;
+  }
 
   return (
     <div className="pb-20 md:pb-0">
@@ -123,11 +60,17 @@ export default function HomePage() {
       </header>
       
       <div className="p-4 border-b border-border/50 hidden md:block">
-        <CreatePostInput 
-          user={currentUser || { name: "Guest", avatar: "" }}
-          onSubmit={handleCreatePost}
-          placeholder="What is happening?!"
-        />
+        {isCreating ? (
+          <div className="flex items-center space-x-2 p-4 text-muted-foreground">
+             <Loader2 className="animate-spin w-5 h-5" /> <span>Confirming Transaction...</span>
+          </div>
+        ) : (
+          <CreatePostInput 
+            user={currentUser || { name: "Guest", avatar: "" }}
+            onSubmit={handleCreatePost}
+            placeholder="What is happening on Web3?!"
+          />
+        )}
       </div>
 
       <div className="divide-y divide-border/50">
@@ -145,22 +88,28 @@ export default function HomePage() {
           ))
         ) : allPosts.length === 0 ? (
           <div className="p-10 text-center text-muted-foreground">
-            No posts to show. Start following people or write your first post!
+            No posts to show. Write your first post onto the blockchain!
           </div>
         ) : (
           <>
             {allPosts.map((post: any) => (
-              <PostCard key={post._id} post={post} />
+              <PostCard 
+                key={post.id} 
+                post={{
+                   _id: post.id.toString(),
+                   content: `IPFS Hash: ${post.contentCid}`,
+                   media: [],
+                   authorId: {
+                     _id: post.author,
+                     name: `${post.author.slice(0, 6)}...${post.author.slice(-4)}`,
+                     username: post.author,
+                   },
+                   likesCount: post.likesCount,
+                   commentsCount: 0,
+                   createdAt: new Date(post.timestamp * 1000).toISOString()
+                }} 
+              />
             ))}
-            
-            {/* Infinite Scroll Trigger Element */}
-            <div ref={ref} className="h-20 w-full flex items-center justify-center py-6">
-              {isFetchingNextPage ? (
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-              ) : !hasNextPage ? (
-                <p className="text-sm text-muted-foreground">You've reached the end!</p>
-              ) : null}
-            </div>
           </>
         )}
       </div>

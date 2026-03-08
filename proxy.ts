@@ -5,7 +5,6 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isApiRoute = pathname.startsWith("/api/");
-  const isAuthRoute = ["/login", "/register", "/forgot-password", "/reset-password"].includes(pathname);
   const isPublicApiRoute = [
     "/api/auth/login", 
     "/api/auth/register", 
@@ -34,7 +33,7 @@ export async function proxy(request: NextRequest) {
         throw new Error("Malformed JWT string");
       }
       return NextResponse.next();
-    } catch (error) {
+    } catch (_error) {
       const response = NextResponse.json(
         { success: false, error: "Invalid authentication token format." },
         { status: 401 }
@@ -42,17 +41,6 @@ export async function proxy(request: NextRequest) {
       response.cookies.delete("token");
       return response;
     }
-  }
-
-  // 2. Frontend Route Protection
-  if (isAuthRoute) {
-    if (token) return NextResponse.redirect(new URL("/", request.url));
-    return NextResponse.next();
-  }
-
-  // All other matched frontend routes are protected (home, profile, search, notifications, post)
-  if (!token) {
-    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   return NextResponse.next();

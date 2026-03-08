@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/app/lib/api";
+// import { api } from "@/app/lib/api";
 
 export default function NotificationsPage() {
   const queryClient = useQueryClient();
@@ -18,7 +18,7 @@ export default function NotificationsPage() {
   const { data: notificationsData, isLoading: loading } = useQuery({
     queryKey: ["notifications"],
     queryFn: async () => {
-      return await api.get("/api/notifications");
+      return []; // Notifications not supported in Phase 1
     }
   });
 
@@ -26,7 +26,7 @@ export default function NotificationsPage() {
 
   const markReadMutation = useMutation({
     mutationFn: async () => {
-      return await api.patch("/api/notifications/read-all");
+      return { success: true };
     },
     onSuccess: () => {
       // Optimistically update or refetch

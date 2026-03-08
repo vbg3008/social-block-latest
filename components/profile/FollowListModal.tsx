@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/app/lib/api";
+// import { api } from "@/app/lib/api";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
@@ -23,8 +23,7 @@ export function FollowListModal({ userId, type, isOpen, onClose, title }: Follow
   const { data, isLoading } = useQuery({
     queryKey: [type, userId],
     queryFn: async () => {
-      const res = await api.get(`/api/users/${userId}/${type}`);
-      return res;
+      return { data: [] }; // Follower mapping directly from smart contract not implemented yet
     },
     enabled: isOpen && !!userId,
   });

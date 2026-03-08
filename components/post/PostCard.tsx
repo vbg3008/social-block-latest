@@ -42,7 +42,7 @@ interface PostCardProps {
 }
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/app/lib/api";
+// Removed legacy api import as blockchain posts are immutable
 
 export function PostCard({ post, isDeletable }: PostCardProps) {
   // console.log("PostCard post:", post);  
@@ -58,7 +58,7 @@ export function PostCard({ post, isDeletable }: PostCardProps) {
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      await api.delete(`/api/posts/${_id}`);
+      throw new Error("Cannot delete posts on an immutable blockchain.");
     },
     onSuccess: () => {
       toast.success("Post deleted");

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { Web3LoginButton } from "@/components/auth/Web3LoginButton";
 
@@ -61,7 +62,7 @@ export default function RegisterPage() {
       <CardHeader className="space-y-1 text-center pb-8">
         <div className="flex justify-center mb-2">
           <div className="w-16 h-16 overflow-hidden relative drop-shadow-md flex items-center justify-center">
-             <img src="/logos/logo.png" alt="SocialBlock Logo" className="w-full h-full object-contain" />
+             <Image src="/logos/icon.png" alt="SocialBlock Logo" fill className="object-contain" priority />
           </div>
         </div>
         <div className="font-bold text-3xl tracking-tighter">SocialBlock</div>

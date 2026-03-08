@@ -16,9 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { api } from "@/app/lib/api";
-import { useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
+// import { api } from "@/app/lib/api";
+// import axios from "axios";
 import { useUserStore } from "@/app/store/useUserStore";
 
 export function EditProfileDialog({ profile, children }: { profile: any, children: React.ReactNode }) {
@@ -39,8 +38,7 @@ export function EditProfileDialog({ profile, children }: { profile: any, childre
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(profile.coverImage || null);
 
-  const queryClient = useQueryClient();
-  const { user, setUser } = useUserStore();
+// Removed unused stores
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -75,89 +73,8 @@ export function EditProfileDialog({ profile, children }: { profile: any, childre
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    try {
-      let finalAvatarUrl = formData.avatar;
-      let finalBannerUrl = formData.coverImage;
-
-      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || "gateway.pinata.cloud";
-
-      const uploadToPinata = async (file: File) => {
-        const signRes = await api.get(`/api/upload/sign?name=${encodeURIComponent(file.name)}`);
-        const signData = signRes.data as any;
-        
-        if (!signData.success || !signData.url) throw new Error("Failed to get presigned URL");
-
-        const uploadData = new FormData();
-        uploadData.append("file", file);
-        uploadData.append("network", "public");
-
-        const uploadRes = await axios.post(signData.url, uploadData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
-
-        const uploadResult = uploadRes.data;
-        if (!uploadResult.data) throw new Error("Pinata upload failed");
-        
-        return `https://${gatewayUrl}/ipfs/${uploadResult.data.cid}`;
-      };
-
-      const deleteOldFile = async (oldUrl: string) => {
-        if (!oldUrl || !oldUrl.includes("/ipfs/")) return;
-        const cid = oldUrl.split("/ipfs/")[1]?.split(/[/?#]/)[0];
-        if (cid) {
-          try {
-            await api.delete("/api/upload/delete", {
-              data: { cid }
-            });
-          } catch (e) {
-            console.error("Failed to delete old file", e);
-          }
-        }
-      };
-
-      // 1. Upload new avatar if selected
-      if (avatarFile) {
-        finalAvatarUrl = await uploadToPinata(avatarFile);
-        if (formData.avatar && formData.avatar !== finalAvatarUrl) {
-          await deleteOldFile(formData.avatar);
-        }
-      }
-
-      // 2. Upload new banner if selected
-      if (bannerFile) {
-        finalBannerUrl = await uploadToPinata(bannerFile);
-        if (formData.coverImage && formData.coverImage !== finalBannerUrl) {
-          await deleteOldFile(formData.coverImage);
-        }
-      }
-
-      // 3. Patch user profile
-      const payload = {
-        ...formData,
-        avatar: finalAvatarUrl,
-        coverImage: finalBannerUrl,
-      };
-
-      const response = await api.patch(`/api/users/${profile._id}`, payload);
-      
-      toast.success("Profile updated successfully");
-      queryClient.invalidateQueries({ queryKey: ["profile", profile.username] });
-      
-      // Instantly update global logged-in user state if they are editing their own profile
-      if (user?._id === profile._id) {
-        setUser({ ...user, ...(response.data?.data || payload) });
-      }
-      
-      setOpen(false);
-    } catch (error: any) {
-      console.error(error);
-      toast.error(error.response?.data?.error || error.message || "Failed to update profile");
-    } finally {
-      setIsLoading(false);
-    }
+    toast.error("Editing existing profiles is not supported by the Phase 1 immutable Smart Contract.");
+    setOpen(false);
   };
 
   return (
